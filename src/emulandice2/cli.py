@@ -104,7 +104,7 @@ class Region(enum.StrEnum):
     "--output-lslr-file",
     envvar="EMULANDICE2_OUTPUT_LSLR_FILE",
     help="Path to write output local SLR file.",
-    required=True,
+    required=False,
     type=str,
 )
 @click.option(
@@ -153,7 +153,7 @@ class Region(enum.StrEnum):
     envvar="EMULANDICE2_LOCATION_FILE",
     help="File containing name, id, lat, and lon of points for localization.",
     type=str,
-    required=True,
+    required=False,
 )
 @click.option(
     "--grdfingerprintfile",
@@ -259,16 +259,32 @@ def main(
 
         # Takes R output files as input so need to run postprocessing before tmp
         # working dir gets cleaned up.
-        emulandice_postprocess(
-            locationfile=location_file,
-            chunksize=chunksize,
-            pipeline_id=pipeline_id,
-            ncfiles=r_projected_paths,
-            grdfingerprintfile=grdfingerprintfile,
-            fingerprint_dir=fingerprint_dir,
-            scenario=scenario,
-            baseyear=baseyear,
-            output_lslr_file=output_lslr_file,
-        )
+
+        #only run postprocess if output_lslr_file and location_file are provided
+        if output_lslr_file and location_file is not None:
+            emulandice_postprocess(
+                locationfile=location_file,
+                chunksize=chunksize,
+                pipeline_id=pipeline_id,
+                ncfiles=r_projected_paths,
+                grdfingerprintfile=grdfingerprintfile,
+                fingerprint_dir=fingerprint_dir,
+                scenario=scenario,
+                baseyear=baseyear,
+                output_lslr_file=output_lslr_file,
+            )
+        # log warnings if only one of output_lslr_file and location_file is provided
+        if output_lslr_file and location_file is None:
+            logger.warning(
+                "Output local SLR file path provided but no location file provided. Skipping local SLR postprocessing."
+            )
+        if output_lslr_file is None and location_file is not None:
+            logger.warning(
+                "Location file provided but no output local SLR file path provided. Skipping local SLR postprocessing."
+            )
+        if output_lslr_file is None and location_file is None:
+                logger.info(
+                    "No output local SLR file path or location file provided. Skipping local SLR postprocessing."
+                )
 
     logger.info("emulandice2 complete")
